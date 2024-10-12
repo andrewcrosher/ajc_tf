@@ -28,12 +28,12 @@ provider "databricks" {
 
 # storage
 resource "azurerm_resource_group" "datalake-rg" {
-  name     = "ajc-dev-datalake-rg"
+  name     = "${var.resource_prefix}-${var.environment}-datalake-rg"
   location = var.location
 }
 
 resource "azurerm_storage_account" "datalake" {
-  name                     = "ajcdevdatalakesa"
+  name                     = "${var.resource_prefix}${var.environment}datalakesa"
   resource_group_name      = azurerm_resource_group.datalake-rg.name
   location                 = azurerm_resource_group.datalake-rg.location
   account_tier             = "Standard"
@@ -48,12 +48,12 @@ resource "azurerm_storage_container" "albums" {
 
 # databricks
 resource "azurerm_resource_group" "adb-rg" {
-  name     = "ajc-dev-adb-rg"
+  name     = "${var.resource_prefix}-${var.environment}-adb-rg"
   location = var.location
 }
 
 resource "azurerm_databricks_workspace" "adb" {
-  name                = "ajc-dev-adb"
+  name                = "${var.resource_prefix}-${var.environment}-adb"
   resource_group_name = azurerm_resource_group.adb-rg.name
   location            = azurerm_resource_group.adb-rg.location
   sku                 = "standard"
@@ -86,20 +86,20 @@ resource "databricks_cluster" "single_node" {
 
 # data factory
 resource "azurerm_resource_group" "adf-rg" {
-  name     = "ajc-dev-adf-rg"
+  name     = "${var.resource_prefix}-${var.environment}-adf-rg"
   location = var.location
 }
 
 # key vault
 resource "azurerm_resource_group" "kv-rg" {
-  name     = "ajc-dev-kv-rg"
+  name     = "${var.resource_prefix}-${var.environment}-kv-rg"
   location = var.location
 }
 
 data "azurerm_client_config" "current" {}
 
-resource "azurerm_key_vault" "ajckv" {
-  name                        = "ajcdevkv"
+resource "azurerm_key_vault" "kv" {
+  name                        = var.resource_prefix
   location                    = azurerm_resource_group.kv-rg.location
   resource_group_name         = azurerm_resource_group.kv-rg.name
   enabled_for_disk_encryption = true
@@ -125,5 +125,5 @@ resource "azurerm_key_vault" "ajckv" {
 resource "azurerm_key_vault_secret" "storage_access_key" {
   name         = "storage-account-access-key"
   value        = azurerm_storage_account.datalake.primary_access_key
-  key_vault_id = azurerm_key_vault.ajckv.id
+  key_vault_id = azurerm_key_vault.kv.id
 }
