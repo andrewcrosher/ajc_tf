@@ -1,0 +1,23 @@
+name: build_tf
+
+on:
+  push:
+    branches:
+      - dev/make_ci_pipeline
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  dbt_ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+
+      - name: set up
+        run: |
+          sudo apt-get update && sudo apt-get install -y gnupg software-properties-common
+
+
+
