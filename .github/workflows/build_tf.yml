@@ -23,3 +23,6 @@ jobs:
 
       - name: verify tf install
         run: terraform -help
+
+      - name: Azure CLI Action
+        uses: Azure/cli@v2.1.0
