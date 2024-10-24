@@ -26,7 +26,9 @@ provider "databricks" {
   azure_workspace_resource_id = azurerm_databricks_workspace.adb.id
 }
 
-# storage
+###########
+# Storage #
+###########
 resource "azurerm_resource_group" "datalake-rg" {
   name     = "${var.resource_prefix}-${var.environment}-datalake-rg"
   location = var.location
@@ -46,7 +48,9 @@ resource "azurerm_storage_container" "albums" {
   storage_account_name = azurerm_storage_account.datalake.name
 }
 
-# databricks
+##############
+# Databricks #
+##############
 resource "azurerm_resource_group" "adb-rg" {
   name     = "${var.resource_prefix}-${var.environment}-adb-rg"
   location = var.location
@@ -86,13 +90,23 @@ resource "databricks_cluster" "single_node" {
   }
 }
 
-# data factory
+################
+# Data Factory #
+################
 resource "azurerm_resource_group" "adf-rg" {
   name     = "${var.resource_prefix}-${var.environment}-adf-rg"
   location = var.location
 }
 
-# key vault
+resource "azurerm_data_factory" "adf" {
+  name                = "${var.resource_prefix}-${var.environment}-adf"
+  location            = azurerm_resource_group.adf-rg.location
+  resource_group_name = azurerm_resource_group.adf-rg.name
+}
+
+#############
+# Key Vault #
+#############
 resource "azurerm_resource_group" "kv-rg" {
   name     = "${var.resource_prefix}-${var.environment}-kv-rg"
   location = var.location
