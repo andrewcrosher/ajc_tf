@@ -92,6 +92,12 @@ resource "azurerm_resource_group" "adf-rg" {
   location = var.location
 }
 
+resource "azurerm_data_factory" "adf" {
+  name                = "${var.resource_prefix}-${var.environment}-adf"
+  location            = azurerm_resource_group.adf-rg.location
+  resource_group_name = azurerm_resource_group.adf-rg.name
+}
+
 # key vault
 resource "azurerm_resource_group" "kv-rg" {
   name     = "${var.resource_prefix}-${var.environment}-kv-rg"
