@@ -36,7 +36,7 @@ Region defaults to `uksouth`. Names are based on a prefix + environment, e.g. `a
 	```
 4. Plan and apply (environment is required):
 	```bash
-	terraform plan -var "environment=ajc" -out tfplan
+	terraform plan -var "environment=dev" -out tfplan
 	terraform apply tfplan
 	```
 
@@ -64,7 +64,7 @@ After apply, Terraform prints:
 ## Cleanup
 Destroy everything created by this configuration:
 ```bash
-terraform destroy -var "environment=ajc"
+terraform destroy -var "environment=dev"
 ```
 
 ## State & Security
