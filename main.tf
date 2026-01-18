@@ -27,11 +27,24 @@ provider "databricks" {
 }
 
 ###########
+# Locals  #
+###########
+locals {
+  common_tags = {
+    Environment = var.environment
+    ManagedBy   = "Terraform"
+    Project     = "AJC Data Platform"
+    CostCenter  = var.environment == "prod" ? "Production" : "Development"
+  }
+}
+
+###########
 # Storage #
 ###########
 resource "azurerm_resource_group" "datalake-rg" {
   name     = "${var.resource_prefix}-${var.environment}-datalake-rg"
   location = var.location
+  tags     = local.common_tags
 }
 
 resource "azurerm_storage_account" "datalake" {
@@ -39,13 +52,48 @@ resource "azurerm_storage_account" "datalake" {
   resource_group_name      = azurerm_resource_group.datalake-rg.name
   location                 = azurerm_resource_group.datalake-rg.location
   account_tier             = "Standard"
-  account_replication_type = "LRS"
+  account_replication_type = var.environment == "prod" ? "ZRS" : "LRS"
   is_hns_enabled           = true
+
+  # Enable blob versioning for data protection
+  blob_properties {
+    versioning_enabled = true
+  }
+
+  tags = local.common_tags
 }
 
 resource "azurerm_storage_container" "albums" {
   name                 = "albums"
   storage_account_name = azurerm_storage_account.datalake.name
+}
+
+# Lifecycle management for cost optimization
+resource "azurerm_storage_management_policy" "datalake_lifecycle" {
+  storage_account_id = azurerm_storage_account.datalake.id
+
+  rule {
+    name    = "archive-old-data"
+    enabled = true
+
+    filters {
+      prefix_match = ["albums/"]
+      blob_types   = ["blockBlob"]
+    }
+
+    actions {
+      base_blob {
+        tier_to_cool_after_days_since_modification_greater_than    = 30
+        tier_to_archive_after_days_since_modification_greater_than = 90
+      }
+      snapshot {
+        delete_after_days_since_creation_greater_than = 90
+      }
+      version {
+        delete_after_days_since_creation = 90
+      }
+    }
+  }
 }
 
 ##############
@@ -54,13 +102,15 @@ resource "azurerm_storage_container" "albums" {
 resource "azurerm_resource_group" "adb-rg" {
   name     = "${var.resource_prefix}-${var.environment}-adb-rg"
   location = var.location
+  tags     = local.common_tags
 }
 
 resource "azurerm_databricks_workspace" "adb" {
   name                = "${var.resource_prefix}-${var.environment}-adb"
   resource_group_name = azurerm_resource_group.adb-rg.name
   location            = azurerm_resource_group.adb-rg.location
-  sku                 = "standard"
+  sku                 = var.environment == "prod" ? "premium" : "standard"
+  tags                = local.common_tags
 }
 
 data "databricks_node_type" "smallest" {
@@ -77,8 +127,16 @@ resource "databricks_cluster" "single_node" {
   cluster_name            = "single_node"
   spark_version           = data.databricks_spark_version.latest_lts.id
   node_type_id            = data.databricks_node_type.smallest.id
-  autotermination_minutes = 20
+  autotermination_minutes = var.environment == "prod" ? 30 : 15
   depends_on              = [azurerm_databricks_workspace.adb]
+
+  # Enable spot instances for non-production environments for cost savings
+  azure_attributes {
+    availability       = var.environment == "prod" ? "ON_DEMAND_AZURE" : "SPOT_WITH_FALLBACK_AZURE"
+    first_on_demand    = var.environment == "prod" ? 1 : 0
+    spot_bid_max_price = var.environment == "prod" ? -1 : -1
+  }
+
   spark_conf = {
     # Single-node
     "spark.databricks.cluster.profile" : "singleNode"
@@ -87,6 +145,7 @@ resource "databricks_cluster" "single_node" {
 
   custom_tags = {
     "ResourceClass" = "SingleNode"
+    "Environment"   = var.environment
   }
 }
 
@@ -96,12 +155,20 @@ resource "databricks_cluster" "single_node" {
 resource "azurerm_resource_group" "adf-rg" {
   name     = "${var.resource_prefix}-${var.environment}-adf-rg"
   location = var.location
+  tags     = local.common_tags
 }
 
 resource "azurerm_data_factory" "adf" {
   name                = "${var.resource_prefix}-${var.environment}-adf"
   location            = azurerm_resource_group.adf-rg.location
   resource_group_name = azurerm_resource_group.adf-rg.name
+  tags                = local.common_tags
+
+  identity {
+    type = "SystemAssigned"
+  }
+
+  public_network_enabled = var.environment == "prod" ? false : true
 }
 
 #############
@@ -110,6 +177,7 @@ resource "azurerm_data_factory" "adf" {
 resource "azurerm_resource_group" "kv-rg" {
   name     = "${var.resource_prefix}-${var.environment}-kv-rg"
   location = var.location
+  tags     = local.common_tags
 }
 
 data "azurerm_client_config" "current" {}
@@ -120,9 +188,10 @@ resource "azurerm_key_vault" "kv" {
   resource_group_name         = azurerm_resource_group.kv-rg.name
   enabled_for_disk_encryption = true
   tenant_id                   = data.azurerm_client_config.current.tenant_id
-  soft_delete_retention_days  = 7
-  purge_protection_enabled    = false
+  soft_delete_retention_days  = var.environment == "prod" ? 90 : 7
+  purge_protection_enabled    = var.environment == "prod" ? true : false
   sku_name                    = "standard"
+  tags                        = local.common_tags
 
   access_policy {
     tenant_id = data.azurerm_client_config.current.tenant_id
