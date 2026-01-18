@@ -30,12 +30,15 @@ provider "databricks" {
 # Locals  #
 ###########
 locals {
-  common_tags = {
-    Environment = var.environment
-    ManagedBy   = "Terraform"
-    Project     = "AJC Data Platform"
-    CostCenter  = var.environment == "prod" ? "Production" : "Development"
-  }
+  common_tags = merge(
+    {
+      Environment = var.environment
+      ManagedBy   = "Terraform"
+      Project     = "AJC Data Platform"
+      CostCenter  = var.environment == "prod" ? "Production" : "Development"
+    },
+    var.additional_tags
+  )
 }
 
 ###########
