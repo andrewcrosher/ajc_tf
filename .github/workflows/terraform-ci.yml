@@ -8,7 +8,7 @@ on:
       - '**/*.tfvars*'
       - '.tflint.hcl'
       - '.github/workflows/terraform-ci.yml'
-      - 'README.md'
+      - 'readme.md'
   push:
     branches: [ main ]
     paths:
@@ -16,7 +16,7 @@ on:
       - '**/*.tfvars*'
       - '.tflint.hcl'
       - '.github/workflows/terraform-ci.yml'
-      - 'README.md'
+      - 'readme.md'
 
 concurrency:
   group: terraform-ci-${{ github.ref }}
@@ -58,9 +58,7 @@ jobs:
           tflint_version: v0.54.0
 
       - name: TFLint init
-        run: |
-          tflint --init
-          ls -la "$HOME/.tflint.d/plugins" || true
+        run: tflint --init
 
       - name: TFLint run
         run: tflint -f compact
