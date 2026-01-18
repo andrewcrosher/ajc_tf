@@ -8,7 +8,5 @@ plugin "databricks" {
   enabled = true
 }
 
-config {
-  # Do not scan modules (none used here)
-  module = false
-}
+# TFLint v0.54+: the "module" attribute was removed. No module-specific
+# settings are required for this repo since no Terraform modules are used.
