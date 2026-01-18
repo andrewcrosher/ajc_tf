@@ -18,6 +18,9 @@ on:
       - '.github/workflows/terraform-ci.yml'
       - 'readme.md'
 
+permissions:
+  contents: read
+
 concurrency:
   group: terraform-ci-${{ github.ref }}
   cancel-in-progress: true
