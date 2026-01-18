@@ -36,7 +36,7 @@ Region defaults to `uksouth`. Names are based on a prefix + environment, e.g. `a
 	```
 4. Plan and apply (environment is required):
 	```bash
-	terraform plan -var "environment=ajc" -out tfplan
+	terraform plan -var "environment=dev" -out tfplan
 	terraform apply tfplan
 	```
 
@@ -46,7 +46,7 @@ Databricks workspace and cluster creation can take several minutes.
 Inputs in `variables.tf`:
 - `location` (string, default: `uksouth`)
 - `resource_prefix` (string, default: `ajc`) – must be globally unique for some resources (e.g., Storage Account, Key Vault)
-- `environment` (string, required) – e.g., `dev`, `test`, `prod`, or your initials
+- `environment` (string, required) – must be either `dev` or `prd`
 
 You can pass variables via CLI flags or a local tfvars file (ignored by git):
 ```bash
@@ -64,7 +64,7 @@ After apply, Terraform prints:
 ## Cleanup
 Destroy everything created by this configuration:
 ```bash
-terraform destroy -var "environment=ajc"
+terraform destroy -var "environment=dev"
 ```
 
 ## State & Security
