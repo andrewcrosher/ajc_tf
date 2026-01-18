@@ -6,20 +6,20 @@ Opinionated Terraform setup to deploy Azure resources from a GitHub Codespace. T
 - Resource groups for each service area (with consistent tagging)
 - Azure Storage Account (Data Lake Gen2) with:
   - Container `albums`
-  - Environment-based replication (ZRS for prod, LRS for dev)
+  - LRS replication for cost efficiency
   - Blob versioning enabled for data protection
-  - Environment-specific lifecycle management (prod: cool at 30d/archive at 90d, dev: cool at 7d/archive at 30d)
+  - Aggressive lifecycle management (cool at 7d, archive at 30d) for minimal storage costs
 - Azure Databricks Workspace:
-  - Premium SKU for production, Standard for development
-  - Single-node cluster with environment-specific configurations
-  - Spot instances for dev (cost savings), on-demand for prod
-  - Auto-termination (15 min for dev, 30 min for prod)
+  - Standard SKU (cost-optimized for personal projects)
+  - Single-node cluster with smallest available node type
+  - Spot instances for maximum cost savings (up to 80% vs on-demand)
+  - Auto-termination after 15 minutes of inactivity
 - Azure Data Factory:
   - System-assigned managed identity for secure authentication
   - Public network access enabled for operational flexibility
 - Azure Key Vault:
-  - Environment-based purge protection (enabled for prod)
-  - Soft delete retention (90 days for prod, 7 days for dev)
+  - Standard SKU with 7-day soft delete retention
+  - Purge protection disabled for easy cleanup
   - Compact naming pattern to stay within 24-character limit
   - Stores storage account access key
 
@@ -63,25 +63,18 @@ Inputs in `variables.tf`:
 - `environment` (string, required) – must be either `dev` or `prod`
 - `additional_tags` (map, optional) – additional tags to apply to all resources
 
-### Environment-Specific Configurations
+### Cost Optimization
 
-The infrastructure automatically adjusts based on the environment:
+This configuration is optimized for **minimal costs** suitable for personal projects:
 
-**Production (`prod`):**
-- Storage: ZRS replication for higher durability
-- Storage Lifecycle: Cool tier at 30 days, archive at 90 days
-- Databricks: Premium SKU with advanced features
-- Databricks Cluster: On-demand instances, 30-minute auto-termination
-- Data Factory: Public network access enabled for connectivity
-- Key Vault: Purge protection enabled, 90-day soft delete retention
-
-**Development (`dev`):**
-- Storage: LRS replication for cost savings
-- Storage Lifecycle: Aggressive tiering - cool at 7 days, archive at 30 days
-- Databricks: Standard SKU
-- Databricks Cluster: Spot instances with fallback (up to 80% cost savings*), 15-minute auto-termination
-- Data Factory: Public network access enabled
-- Key Vault: Purge protection disabled, 7-day soft delete retention
+- **Storage**: LRS replication only (lowest cost tier)
+- **Storage Lifecycle**: Aggressive tiering (cool at 7 days, archive at 30 days) minimizes storage costs
+- **Databricks Workspace**: Standard SKU (not Premium) to avoid premium feature costs
+- **Databricks Cluster**: 
+  - Spot instances with fallback for up to 80% savings vs on-demand*
+  - Smallest available node type
+  - 15-minute auto-termination to minimize idle costs
+- **Key Vault**: Standard SKU with minimal 7-day retention, no purge protection
 
 *Actual spot instance savings vary based on Azure market conditions. Setting `spot_bid_max_price = -1` allows Azure to charge up to on-demand rates, maximizing availability while typically providing significant cost savings.
 
@@ -112,18 +105,19 @@ Destroy everything created by this configuration:
 terraform destroy -var "environment=dev"
 ```
 
-**Note for Production**: Production Key Vaults have purge protection enabled, which prevents immediate deletion. After running `terraform destroy`, you may need to manually purge the Key Vault or wait for the retention period to expire before redeploying.
+**Note**: Purge protection is disabled and soft delete retention is minimal (7 days) for easy cleanup and cost savings. After running `terraform destroy`, resources can be fully removed without manual intervention.
 
 ## Cost Optimization Features
 
-This configuration includes several cost optimization features:
+This configuration is designed for **minimal costs** on personal projects:
 
-1. **Environment-Based SKUs**: Production uses higher-tier SKUs for reliability, while development uses cost-effective options
-2. **Storage Lifecycle Management**: Environment-specific tiering policies (prod: 30/90 days, dev: 7/30 days for cool/archive)
-3. **Spot Instances**: Development Databricks clusters use spot instances with fallback (actual savings vary with market conditions)
-4. **Auto-Termination**: Clusters automatically terminate after inactivity (15 min dev, 30 min prod)
-5. **Replication Strategy**: LRS for dev, ZRS for prod balances cost and durability
-6. **Resource Tagging**: Comprehensive tags enable cost tracking and analysis by environment and cost center
+1. **Lowest-Cost SKUs**: Standard tier for all services (no premium features)
+2. **Storage Lifecycle Management**: Aggressive tiering (7/30 days for cool/archive) minimizes storage costs
+3. **Spot Instances**: All Databricks clusters use spot instances with fallback (actual savings vary with market conditions)
+4. **Auto-Termination**: Clusters terminate after 15 minutes of inactivity to eliminate idle costs
+5. **LRS Replication**: Locally-redundant storage for lowest storage costs
+6. **Minimal Retention**: 7-day soft delete retention to avoid extended storage costs
+7. **Resource Tagging**: Comprehensive tags enable cost tracking and analysis
 
 ## State & Security
 - Local state is used by default. State files can contain sensitive data – they are ignored by `.gitignore`.
@@ -133,13 +127,13 @@ This configuration includes several cost optimization features:
 
 ## Security Features
 
-This configuration implements several security best practices:
+This configuration implements security best practices while maintaining cost efficiency:
 
 1. **Data Factory Managed Identity**: System-assigned identity eliminates need for stored credentials
 2. **Key Vault Protection**: 
-   - Purge protection enabled in production to prevent accidental deletion
-   - Extended soft delete retention (90 days) for production
-   - Provider configured to not auto-purge on destroy (compatible with purge protection)
+   - 7-day soft delete retention for recovery from accidental deletion
+   - Purge protection disabled for easy cleanup and redeployment
+   - Provider configured to not auto-purge on destroy
 3. **Storage Protection**: 
    - Blob versioning enabled for data recovery
    - Environment-specific lifecycle policies manage data retention

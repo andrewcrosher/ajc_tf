@@ -55,7 +55,7 @@ resource "azurerm_storage_account" "datalake" {
   resource_group_name      = azurerm_resource_group.datalake-rg.name
   location                 = azurerm_resource_group.datalake-rg.location
   account_tier             = "Standard"
-  account_replication_type = var.environment == "prod" ? "ZRS" : "LRS"
+  account_replication_type = "LRS"
   is_hns_enabled           = true
 
   # Enable blob versioning for data protection
@@ -86,14 +86,14 @@ resource "azurerm_storage_management_policy" "datalake_lifecycle" {
 
     actions {
       base_blob {
-        tier_to_cool_after_days_since_modification_greater_than    = var.environment == "prod" ? 30 : 7
-        tier_to_archive_after_days_since_modification_greater_than = var.environment == "prod" ? 90 : 30
+        tier_to_cool_after_days_since_modification_greater_than    = 7
+        tier_to_archive_after_days_since_modification_greater_than = 30
       }
       snapshot {
-        delete_after_days_since_creation_greater_than = var.environment == "prod" ? 90 : 30
+        delete_after_days_since_creation_greater_than = 30
       }
       version {
-        delete_after_days_since_creation = var.environment == "prod" ? 90 : 30
+        delete_after_days_since_creation = 30
       }
     }
   }
@@ -112,7 +112,7 @@ resource "azurerm_databricks_workspace" "adb" {
   name                = "${var.resource_prefix}-${var.environment}-adb"
   resource_group_name = azurerm_resource_group.adb-rg.name
   location            = azurerm_resource_group.adb-rg.location
-  sku                 = var.environment == "prod" ? "premium" : "standard"
+  sku                 = "standard"
   tags                = local.common_tags
 }
 
@@ -130,14 +130,14 @@ resource "databricks_cluster" "single_node" {
   cluster_name            = "single_node"
   spark_version           = data.databricks_spark_version.latest_lts.id
   node_type_id            = data.databricks_node_type.smallest.id
-  autotermination_minutes = var.environment == "prod" ? 30 : 15
+  autotermination_minutes = 15
   depends_on              = [azurerm_databricks_workspace.adb]
 
-  # Enable spot instances for non-production environments for cost savings
+  # Enable spot instances for cost savings
   azure_attributes {
-    availability       = var.environment == "prod" ? "ON_DEMAND_AZURE" : "SPOT_WITH_FALLBACK_AZURE"
-    first_on_demand    = var.environment == "prod" ? null : 0
-    spot_bid_max_price = var.environment == "prod" ? null : -1
+    availability       = "SPOT_WITH_FALLBACK_AZURE"
+    first_on_demand    = 0
+    spot_bid_max_price = -1
   }
 
   spark_conf = {
@@ -191,8 +191,8 @@ resource "azurerm_key_vault" "kv" {
   resource_group_name         = azurerm_resource_group.kv-rg.name
   enabled_for_disk_encryption = true
   tenant_id                   = data.azurerm_client_config.current.tenant_id
-  soft_delete_retention_days  = var.environment == "prod" ? 90 : 7
-  purge_protection_enabled    = var.environment == "prod" ? true : false
+  soft_delete_retention_days  = 7
+  purge_protection_enabled    = false
   sku_name                    = "standard"
   tags                        = local.common_tags
 
