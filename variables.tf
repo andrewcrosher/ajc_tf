@@ -9,8 +9,8 @@ variable "resource_prefix" {
   type        = string
   default     = "ajc"
   validation {
-    condition     = length(var.resource_prefix) <= 18
-    error_message = "Resource prefix must be 18 characters or less to ensure Key Vault name (prefix + environment + 'kv') stays within the 24 character limit."
+    condition     = length(var.resource_prefix) <= 10
+    error_message = "Resource prefix must be 10 characters or less to ensure all resource names, including the storage account (${var.resource_prefix}${var.environment}datalakesa), stay within Azure's 24 character limit."
   }
 }
 
