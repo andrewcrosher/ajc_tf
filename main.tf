@@ -137,7 +137,7 @@ resource "databricks_cluster" "single_node" {
   azure_attributes {
     availability       = var.environment == "prod" ? "ON_DEMAND_AZURE" : "SPOT_WITH_FALLBACK_AZURE"
     first_on_demand    = var.environment == "prod" ? 1 : 0
-    spot_bid_max_price = var.environment == "prod" ? -1 : -1
+    spot_bid_max_price = var.environment == "prod" ? null : -1
   }
 
   spark_conf = {
@@ -186,7 +186,7 @@ resource "azurerm_resource_group" "kv-rg" {
 data "azurerm_client_config" "current" {}
 
 resource "azurerm_key_vault" "kv" {
-  name                        = var.resource_prefix
+  name                        = "${var.resource_prefix}-${var.environment}-kv"
   location                    = azurerm_resource_group.kv-rg.location
   resource_group_name         = azurerm_resource_group.kv-rg.name
   enabled_for_disk_encryption = true

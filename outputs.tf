@@ -34,7 +34,7 @@ output "data_factory_id" {
 }
 
 output "data_factory_identity_principal_id" {
-  value       = azurerm_data_factory.adf.identity[0].principal_id
+  value       = try(azurerm_data_factory.adf.identity[0].principal_id, null)
   description = "Principal ID of the Data Factory managed identity"
 }
 
