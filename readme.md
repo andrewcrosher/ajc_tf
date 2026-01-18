@@ -82,7 +82,7 @@ terraform destroy -var "environment=dev"
 The Codespaces devcontainer installs Terraform and Azure CLI. If you change `.devcontainer/*`, rebuild the container from the Command Palette (Rebuild Container) to apply updates.
 
 ## Repo Hygiene
-- CI: This repo runs Terraform formatting and validation on PRs via GitHub Actions (see `.github/workflows/terraform-ci.yml`).
+- CI: This repo runs Terraform formatting, validation, linting (TFLint), and secret scanning on PRs via GitHub Actions (see `.github/workflows/terraform-ci.yml` and `.github/workflows/secrets-scan.yml`).
 - Pre-commit: Optional local hooks are configured in `.pre-commit-config.yaml`:
 	```bash
 	pipx install pre-commit  # or: pip install pre-commit
