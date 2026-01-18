@@ -136,7 +136,7 @@ This configuration implements security best practices while maintaining cost eff
    - Provider configured to not auto-purge on destroy
 3. **Storage Protection**: 
    - Blob versioning enabled for data recovery
-   - Environment-specific lifecycle policies manage data retention
+   - Lifecycle policies manage data retention (cool at 7d, archive at 30d)
 4. **Resource Tagging**: All resources tagged for governance and compliance tracking
 
 ## Troubleshooting
