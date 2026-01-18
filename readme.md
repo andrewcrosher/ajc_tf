@@ -69,7 +69,7 @@ terraform destroy -var "environment=ajc"
 
 ## State & Security
 - Local state is used by default. State files can contain sensitive data – they are ignored by `.gitignore`.
-- `.gitignore` excludes: `.terraform/`, `*.tfstate*`, `*.auto.tfvars`, `tfplan`/`*.plan`, and local env files.
+- `.gitignore` excludes: `.terraform/`, `*.tfstate*`, `*.auto.tfvars`, Terraform plan files (for example, files named `tfplan` or with `.tfplan`/`.plan` in the name), and local env files.
 - `.terraform.lock.hcl` is intentionally tracked to pin provider versions (no secrets in it).
 - For teams/CI, consider a remote backend (e.g., Azure Storage) and a service principal.
 
