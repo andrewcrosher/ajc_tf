@@ -59,7 +59,7 @@ Databricks workspace and cluster creation can take several minutes.
 ## Configuration
 Inputs in `variables.tf`:
 - `location` (string, default: `uksouth`) – Azure region for resources
-- `resource_prefix` (string, default: `ajc`) – must be globally unique and ≤18 characters for Key Vault naming (prefix + environment + 'kv' must be ≤24 chars)
+- `resource_prefix` (string, default: `ajc`) – must be globally unique and ≤10 characters to satisfy Azure Storage Account naming (`${resource_prefix}${environment}datalakesa` must be ≤24 chars; this also keeps Key Vault names within the 24-character limit)
 - `environment` (string, required) – must be either `dev` or `prod`
 - `additional_tags` (map, optional) – additional tags to apply to all resources
 
