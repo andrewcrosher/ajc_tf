@@ -46,7 +46,7 @@ Databricks workspace and cluster creation can take several minutes.
 Inputs in `variables.tf`:
 - `location` (string, default: `uksouth`)
 - `resource_prefix` (string, default: `ajc`) – must be globally unique for some resources (e.g., Storage Account, Key Vault)
-- `environment` (string, required) – e.g., `dev`, `test`, `prod`, or your initials
+- `environment` (string, required) – must be either `dev` or `prd`
 
 You can pass variables via CLI flags or a local tfvars file (ignored by git):
 ```bash
