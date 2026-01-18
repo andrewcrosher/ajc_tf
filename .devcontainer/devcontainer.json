@@ -1,0 +1,17 @@
+{
+    "name": "Terraform Azure Codespace",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "features": {},
+    "postCreateCommand": "az --version && terraform --version",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "HashiCorp.terraform",
+                "ms-azuretools.vscode-azureterraform",
+                "ms-azuretools.vscode-azurecli"
+            ]
+        }
+    }
+}
