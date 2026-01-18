@@ -16,7 +16,7 @@ terraform {
 provider "azurerm" {
   features {
     key_vault {
-      purge_soft_delete_on_destroy    = true
+      purge_soft_delete_on_destroy    = false
       recover_soft_deleted_key_vaults = true
     }
   }
@@ -86,14 +86,14 @@ resource "azurerm_storage_management_policy" "datalake_lifecycle" {
 
     actions {
       base_blob {
-        tier_to_cool_after_days_since_modification_greater_than    = 30
-        tier_to_archive_after_days_since_modification_greater_than = 90
+        tier_to_cool_after_days_since_modification_greater_than    = var.environment == "prod" ? 30 : 7
+        tier_to_archive_after_days_since_modification_greater_than = var.environment == "prod" ? 90 : 30
       }
       snapshot {
-        delete_after_days_since_creation_greater_than = 90
+        delete_after_days_since_creation_greater_than = var.environment == "prod" ? 90 : 30
       }
       version {
-        delete_after_days_since_creation = 90
+        delete_after_days_since_creation = var.environment == "prod" ? 90 : 30
       }
     }
   }
@@ -136,7 +136,7 @@ resource "databricks_cluster" "single_node" {
   # Enable spot instances for non-production environments for cost savings
   azure_attributes {
     availability       = var.environment == "prod" ? "ON_DEMAND_AZURE" : "SPOT_WITH_FALLBACK_AZURE"
-    first_on_demand    = var.environment == "prod" ? 1 : 0
+    first_on_demand    = var.environment == "prod" ? null : 0
     spot_bid_max_price = var.environment == "prod" ? null : -1
   }
 
@@ -171,7 +171,7 @@ resource "azurerm_data_factory" "adf" {
     type = "SystemAssigned"
   }
 
-  public_network_enabled = var.environment == "prod" ? false : true
+  public_network_enabled = true
 }
 
 #############
@@ -186,7 +186,7 @@ resource "azurerm_resource_group" "kv-rg" {
 data "azurerm_client_config" "current" {}
 
 resource "azurerm_key_vault" "kv" {
-  name                        = "${var.resource_prefix}-${var.environment}-kv"
+  name                        = "${var.resource_prefix}${var.environment}kv"
   location                    = azurerm_resource_group.kv-rg.location
   resource_group_name         = azurerm_resource_group.kv-rg.name
   enabled_for_disk_encryption = true

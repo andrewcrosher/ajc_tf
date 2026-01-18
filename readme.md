@@ -8,7 +8,7 @@ Opinionated Terraform setup to deploy Azure resources from a GitHub Codespace. T
   - Container `albums`
   - Environment-based replication (ZRS for prod, LRS for dev)
   - Blob versioning enabled for data protection
-  - Lifecycle management for cost optimization (cool tier at 30 days, archive at 90 days)
+  - Environment-specific lifecycle management (prod: cool at 30d/archive at 90d, dev: cool at 7d/archive at 30d)
 - Azure Databricks Workspace:
   - Premium SKU for production, Standard for development
   - Single-node cluster with environment-specific configurations
@@ -16,10 +16,11 @@ Opinionated Terraform setup to deploy Azure resources from a GitHub Codespace. T
   - Auto-termination (15 min for dev, 30 min for prod)
 - Azure Data Factory:
   - System-assigned managed identity for secure authentication
-  - Public network access disabled for production
+  - Public network access enabled for operational flexibility
 - Azure Key Vault:
   - Environment-based purge protection (enabled for prod)
   - Soft delete retention (90 days for prod, 7 days for dev)
+  - Compact naming pattern to stay within 24-character limit
   - Stores storage account access key
 
 Region defaults to `uksouth`. Names are based on a prefix + environment, e.g. `ajc-prod-datalake-rg`.
@@ -58,7 +59,7 @@ Databricks workspace and cluster creation can take several minutes.
 ## Configuration
 Inputs in `variables.tf`:
 - `location` (string, default: `uksouth`) – Azure region for resources
-- `resource_prefix` (string, default: `ajc`) – must be globally unique for some resources (e.g., Storage Account, Key Vault)
+- `resource_prefix` (string, default: `ajc`) – must be globally unique and ≤18 characters for Key Vault naming (prefix + environment + 'kv' must be ≤24 chars)
 - `environment` (string, required) – must be either `dev` or `prod`
 - `additional_tags` (map, optional) – additional tags to apply to all resources
 
@@ -68,17 +69,21 @@ The infrastructure automatically adjusts based on the environment:
 
 **Production (`prod`):**
 - Storage: ZRS replication for higher durability
+- Storage Lifecycle: Cool tier at 30 days, archive at 90 days
 - Databricks: Premium SKU with advanced features
 - Databricks Cluster: On-demand instances, 30-minute auto-termination
-- Data Factory: Public network access disabled
+- Data Factory: Public network access enabled for connectivity
 - Key Vault: Purge protection enabled, 90-day soft delete retention
 
 **Development (`dev`):**
 - Storage: LRS replication for cost savings
+- Storage Lifecycle: Aggressive tiering - cool at 7 days, archive at 30 days
 - Databricks: Standard SKU
-- Databricks Cluster: Spot instances with fallback, 15-minute auto-termination
+- Databricks Cluster: Spot instances with fallback (up to 80% cost savings*), 15-minute auto-termination
 - Data Factory: Public network access enabled
 - Key Vault: Purge protection disabled, 7-day soft delete retention
+
+*Actual spot instance savings vary based on Azure market conditions. Setting `spot_bid_max_price = -1` allows Azure to charge up to on-demand rates, maximizing availability while typically providing significant cost savings.
 
 You can pass variables via CLI flags or a local tfvars file (ignored by git):
 ```bash
@@ -107,13 +112,15 @@ Destroy everything created by this configuration:
 terraform destroy -var "environment=dev"
 ```
 
+**Note for Production**: Production Key Vaults have purge protection enabled, which prevents immediate deletion. After running `terraform destroy`, you may need to manually purge the Key Vault or wait for the retention period to expire before redeploying.
+
 ## Cost Optimization Features
 
 This configuration includes several cost optimization features:
 
 1. **Environment-Based SKUs**: Production uses higher-tier SKUs for reliability, while development uses cost-effective options
-2. **Storage Lifecycle Management**: Automatically moves older data to cool/archive tiers (30/90 days)
-3. **Spot Instances**: Development Databricks clusters use spot instances with fallback for up to 80% cost savings
+2. **Storage Lifecycle Management**: Environment-specific tiering policies (prod: 30/90 days, dev: 7/30 days for cool/archive)
+3. **Spot Instances**: Development Databricks clusters use spot instances with fallback (actual savings vary with market conditions)
 4. **Auto-Termination**: Clusters automatically terminate after inactivity (15 min dev, 30 min prod)
 5. **Replication Strategy**: LRS for dev, ZRS for prod balances cost and durability
 6. **Resource Tagging**: Comprehensive tags enable cost tracking and analysis by environment and cost center
@@ -129,14 +136,14 @@ This configuration includes several cost optimization features:
 This configuration implements several security best practices:
 
 1. **Data Factory Managed Identity**: System-assigned identity eliminates need for stored credentials
-2. **Network Security**: Production Data Factory disables public network access
-3. **Key Vault Protection**: 
+2. **Key Vault Protection**: 
    - Purge protection enabled in production to prevent accidental deletion
    - Extended soft delete retention (90 days) for production
-4. **Storage Protection**: 
+   - Provider configured to not auto-purge on destroy (compatible with purge protection)
+3. **Storage Protection**: 
    - Blob versioning enabled for data recovery
-   - Lifecycle policies manage data retention
-5. **Resource Tagging**: All resources tagged for governance and compliance tracking
+   - Environment-specific lifecycle policies manage data retention
+4. **Resource Tagging**: All resources tagged for governance and compliance tracking
 
 ## Troubleshooting
 - "Please run az login" – run `./scripts/azure-login.sh` and ensure the correct subscription with `az account show`.

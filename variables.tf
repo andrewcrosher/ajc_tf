@@ -8,6 +8,10 @@ variable "resource_prefix" {
   description = "Prefix for naming Azure resources"
   type        = string
   default     = "ajc"
+  validation {
+    condition     = length(var.resource_prefix) <= 18
+    error_message = "Resource prefix must be 18 characters or less to ensure Key Vault name (prefix + environment + 'kv') stays within the 24 character limit."
+  }
 }
 
 variable "environment" {
