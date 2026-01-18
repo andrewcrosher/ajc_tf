@@ -13,6 +13,7 @@ variable "resource_prefix" {
 variable "environment" {
   description = "Environment name"
   type        = string
+  default     = "dev"
   validation {
     condition     = contains(["dev", "prod"], var.environment)
     error_message = "Environment must be either 'dev' or 'prod'."
