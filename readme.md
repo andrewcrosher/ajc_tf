@@ -80,6 +80,16 @@ terraform destroy -var "environment=ajc"
 
 ## Devcontainer Notes
 The Codespaces devcontainer installs Terraform and Azure CLI. If you change `.devcontainer/*`, rebuild the container from the Command Palette (Rebuild Container) to apply updates.
+
+## Repo Hygiene
+- CI: This repo runs Terraform formatting and validation on PRs via GitHub Actions (see `.github/workflows/terraform-ci.yml`).
+- Pre-commit: Optional local hooks are configured in `.pre-commit-config.yaml`:
+	```bash
+	pipx install pre-commit  # or: pip install pre-commit
+	pre-commit install
+	```
+	This enforces whitespace hygiene and runs `terraform fmt` and `terraform validate` before commits.
+- Line endings: `.gitattributes` normalizes to LF to avoid cross-platform diffs.
 # ajc_tf
 
 `ajc_tf` is a Terraform repository that contains the necessary code to create and manage Azure resources for the `ajc_dbt` repository. This repository automates the provisioning of essential Azure services, including:
